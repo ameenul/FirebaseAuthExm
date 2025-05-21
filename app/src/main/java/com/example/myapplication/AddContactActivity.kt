@@ -1,7 +1,11 @@
 package com.example.myapplication
 
+import android.content.ContentValues
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
@@ -10,16 +14,23 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+// Remove FileProvider import if not used elsewhere for this specific flow
+// import androidx.core.content.FileProvider
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
+// import java.io.File // Only needed if you still want to handle temp files for some reason
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.text.format
 
 class AddContactActivity : AppCompatActivity() {
 
     private lateinit var progressBar: ProgressBar
-
     private lateinit var imgPreview: ImageView
     private lateinit var btnChoosePhoto: Button
     private lateinit var tilName: TextInputLayout
@@ -28,8 +39,12 @@ class AddContactActivity : AppCompatActivity() {
     private lateinit var etPhone: TextInputEditText
     private lateinit var btnSave: Button
 
-    private var selectedImageUri: Uri? = null
+    // This will now hold the URI from MediaStore for the captured image
+    private var capturedImageUri: Uri? = null
+    // pickImageLauncher remains for gallery selection
     private lateinit var pickImageLauncher: ActivityResultLauncher<String>
+    private lateinit var takePictureLauncher: ActivityResultLauncher<Uri>
+
 
     private lateinit var auth: FirebaseAuth
     private lateinit var dbRef: com.google.firebase.database.DatabaseReference
@@ -39,7 +54,6 @@ class AddContactActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_contact)
 
-        // Inisialisasi Firebase
         auth = FirebaseAuth.getInstance()
         val uid = auth.currentUser?.uid
             ?: run {
@@ -47,47 +61,54 @@ class AddContactActivity : AppCompatActivity() {
                 finish()
                 return
             }
-        dbRef = FirebaseDatabase.getInstance()
-            .getReference("contacts")
-            .child(uid)
-        storageRef = FirebaseStorage.getInstance()
-            .getReference("photos")
-            .child(uid)
+        dbRef = FirebaseDatabase.getInstance().getReference("contacts").child(uid)
+        storageRef = FirebaseStorage.getInstance().getReference("photos").child(uid)
 
-        // Binding view
-        imgPreview     = findViewById(R.id.imgPreview)
+        imgPreview = findViewById(R.id.imgPreview)
         btnChoosePhoto = findViewById(R.id.btnChoosePhoto)
-        tilName        = findViewById(R.id.tilName)
-        etName         = findViewById(R.id.etName)
-        tilPhone       = findViewById(R.id.tilPhone)
-        etPhone        = findViewById(R.id.etPhone)
-        btnSave        = findViewById(R.id.btnSaveContact)
-        progressBar     = findViewById(R.id.progressBar)
+        tilName = findViewById(R.id.tilName)
+        etName = findViewById(R.id.etName)
+        tilPhone = findViewById(R.id.tilPhone)
+        etPhone = findViewById(R.id.etPhone)
+        btnSave = findViewById(R.id.btnSaveContact)
+        progressBar = findViewById(R.id.progressBar)
 
-
-        // Siapkan launcher untuk memilih gambar dari Gallery
-        pickImageLauncher = registerForActivityResult(
-            ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
+        pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let {
-                selectedImageUri = it
+                capturedImageUri = it // Update this to use capturedImageUri consistently
                 imgPreview.setImageURI(it)
             }
         }
 
-        // Tombol pilih foto
-        btnChoosePhoto.setOnClickListener {
-            pickImageLauncher.launch("image/*")
+        takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { isSuccess ->
+            if (isSuccess) {
+                // The image is already saved to the 'capturedImageUri' by the camera app
+                capturedImageUri?.let { uri ->
+                    imgPreview.setImageURI(uri)
+                    Toast.makeText(this, "Image saved to MediaStore: $uri", Toast.LENGTH_SHORT).show()
+                    // You can now use this 'capturedImageUri' for Firebase upload
+                }
+            } else {
+                Toast.makeText(this, "Image capture failed", Toast.LENGTH_SHORT).show()
+                // Optionally, if capture failed, you might want to delete the pending MediaStore entry
+                // if created with IS_PENDING, though TakePicture contract handles this well.
+                capturedImageUri = null
+            }
         }
 
-        // Tombol simpan kontak
+        btnChoosePhoto.setOnClickListener {
+            // Let's add a dialog to choose between Camera and Gallery
+            showPhotoSourceDialog()
+        }
+
         btnSave.setOnClickListener {
             tilName.error = null
             tilPhone.error = null
 
-            val name  = etName.text?.toString()?.trim().orEmpty()
+            val name = etName.text?.toString()?.trim().orEmpty()
             val phone = etPhone.text?.toString()?.trim().orEmpty()
-            val imageUri = selectedImageUri
+            // Use capturedImageUri for both camera and gallery
+            val imageToUploadUri = capturedImageUri
 
             if (name.isEmpty()) {
                 tilName.error = "Nama tidak boleh kosong"
@@ -97,7 +118,7 @@ class AddContactActivity : AppCompatActivity() {
                 tilPhone.error = "Nomor HP tidak boleh kosong"
                 return@setOnClickListener
             }
-            if (imageUri == null) {
+            if (imageToUploadUri == null) {
                 Toast.makeText(this, "Silakan pilih foto terlebih dahulu", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -106,8 +127,6 @@ class AddContactActivity : AppCompatActivity() {
             btnSave.text = "Menyimpan..."
             progressBar.visibility = View.VISIBLE
 
-
-            // Generate key untuk kontak baru
             val contactId = dbRef.push().key
             if (contactId == null) {
                 Toast.makeText(this, "Gagal membuat ID kontak", Toast.LENGTH_SHORT).show()
@@ -115,72 +134,105 @@ class AddContactActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Upload foto ke Firebase Storage
             val imageRef = storageRef.child("$contactId.jpg")
-            imageRef.putFile(imageUri)
+            imageRef.putFile(imageToUploadUri) // Use the URI from MediaStore
                 .addOnSuccessListener {
-                    // Ambil URL download
                     imageRef.downloadUrl
                         .addOnSuccessListener { downloadUri ->
                             val contact = Contact(
-                                id       = contactId,
-                                name     = name,
+                                id = contactId,
+                                name = name,
                                 photoUrl = downloadUri.toString(),
-                                phone    = phone
+                                phone = phone
                             )
-                            // Simpan data kontak ke Realtime Database
                             dbRef.child(contactId).setValue(contact)
                                 .addOnSuccessListener {
-                                    Toast.makeText(this,
-                                        "Kontak berhasil disimpan",
-                                        Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this, "Kontak berhasil disimpan", Toast.LENGTH_SHORT).show()
                                     progressBar.visibility = View.GONE
                                     finish()
                                 }
                                 .addOnFailureListener { e ->
-                                    Toast.makeText(this,
-                                        "Gagal simpan kontak: ${e.message}",
-                                        Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this, "Gagal simpan kontak: ${e.message}", Toast.LENGTH_SHORT).show()
                                     progressBar.visibility = View.GONE
                                     resetSaveButton()
                                 }
                         }
                         .addOnFailureListener { e ->
-                            Toast.makeText(this,
-                                "Gagal ambil URL: ${e.message}",
-                                Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Gagal ambil URL: ${e.message}", Toast.LENGTH_SHORT).show()
                             resetSaveButton()
                         }
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(this,
-                        "Gagal upload gambar: ${e.message}",
-                        Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Gagal upload gambar: ${e.message}", Toast.LENGTH_SHORT).show()
                     resetSaveButton()
                 }
         }
     }
 
+    private fun showPhotoSourceDialog() {
+        val options = arrayOf<CharSequence>("Take Photo", "Choose from Gallery", "Cancel")
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle("Choose Photo Source")
+        builder.setItems(options) { dialog, item ->
+            when {
+                options[item] == "Take Photo" -> {
+                    launchCameraWithMediaStore()
+                }
+                options[item] == "Choose from Gallery" -> {
+                    pickImageLauncher.launch("image/*")
+                }
+                options[item] == "Cancel" -> {
+                    dialog.dismiss()
+                }
+            }
+        }
+        builder.show()
+    }
+
+
+    private fun launchCameraWithMediaStore() {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val displayName = "IMG_${timeStamp}.jpg"
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Scoped storage: Add to Pictures directory, specific to your app or general
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/YourAppName")
+                // put(MediaStore.Images.Media.IS_PENDING, 1) // TakePicture contract handles pending state well
+            }
+        }
+
+        val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+
+        try {
+            val imageUriFromMediaStore = contentResolver.insert(imageCollection, contentValues)
+            if (imageUriFromMediaStore == null) {
+                Toast.makeText(this, "Failed to create MediaStore entry.", Toast.LENGTH_SHORT).show()
+                return
+            }
+            capturedImageUri = imageUriFromMediaStore // Store this URI
+            capturedImageUri?.let { takePictureLauncher.launch(it) }
+        } catch (e: IOException) {
+            Toast.makeText(this, "Error creating MediaStore entry: ${e.message}", Toast.LENGTH_SHORT).show()
+            e.printStackTrace()
+        }
+    }
+
+
     private fun resetSaveButton() {
         btnSave.isEnabled = true
         btnSave.text = "Simpan"
+        progressBar.visibility = View.GONE // Ensure progress bar is hidden
     }
+
+    // You might not need getTmpFileUri() anymore if always using MediaStore for camera
+    // private fun getTmpFileUri(): Uri { ... }
 }
 
-
-////rule firebase storage
-//rules_version = '2';
-//service firebase.storage {
-//    match /b/{bucket}/o {
-//        // Hanya izinkan akses ke path /photos/{userId}/...
-//        match /photos/{userId}/{allPaths=**} {
-//            allow read, write: if request.auth != null
-//            && request.auth.uid == userId;
-//        }
-//
-//        // Default: tolak semua akses lainnya
-//        match /{allPaths=**} {
-//            allow read, write: if false;
-//        }
-//    }
-//}
+// Dummy Contact data class for context
