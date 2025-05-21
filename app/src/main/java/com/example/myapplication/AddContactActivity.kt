@@ -199,7 +199,7 @@ class AddContactActivity : AppCompatActivity() {
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Scoped storage: Add to Pictures directory, specific to your app or general
-                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/YourAppName")
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/myapplication")
                 // put(MediaStore.Images.Media.IS_PENDING, 1) // TakePicture contract handles pending state well
             }
         }
@@ -216,8 +216,12 @@ class AddContactActivity : AppCompatActivity() {
                 Toast.makeText(this, "Failed to create MediaStore entry.", Toast.LENGTH_SHORT).show()
                 return
             }
-            capturedImageUri = imageUriFromMediaStore // Store this URI
-            capturedImageUri?.let { takePictureLauncher.launch(it) }
+            else{
+                capturedImageUri = imageUriFromMediaStore // Store this URI
+                capturedImageUri?.let { it -> takePictureLauncher.launch(it) }
+            }
+
+
         } catch (e: IOException) {
             Toast.makeText(this, "Error creating MediaStore entry: ${e.message}", Toast.LENGTH_SHORT).show()
             e.printStackTrace()
