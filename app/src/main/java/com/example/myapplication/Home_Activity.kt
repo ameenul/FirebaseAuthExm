@@ -17,7 +17,7 @@ class Home_Activity : AppCompatActivity() {
     lateinit var auth: FirebaseAuth
     lateinit var binding: ActivityHomeBinding
     private lateinit var googleSignInClient: GoogleSignInClient
-    private val RC_SIGN_IN = 9001
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +47,7 @@ class Home_Activity : AppCompatActivity() {
 
         binding.btLogout.setOnClickListener {
             auth.signOut()
-            startActivity(Intent(this,MainActivity::class.java))
+            startActivity(Intent(this,LoginActivity::class.java))
 
             googleSignInClient.signOut()
 

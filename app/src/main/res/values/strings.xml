@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">My Application</string>
     <string name="default_web_client_id">1076323282066-u4s5nv8kk1d2307o4togggug5b9e5css.apps.googleusercontent.com</string>
+    <string name="add_contact">add contact</string>
+    <string name="delete">delete</string>
+    <string name="contact_photo">image photo</string>
 </resources>

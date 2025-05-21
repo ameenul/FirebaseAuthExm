@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.credentials.CredentialManager
 import com.example.myapplication.databinding.ActivityMainBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -17,21 +18,23 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 
-class MainActivity : AppCompatActivity() {
+class LoginActivity : AppCompatActivity() {
 
     lateinit var auth: FirebaseAuth
     lateinit var binding: ActivityMainBinding
     private lateinit var googleSignInClient: GoogleSignInClient
     private val RC_SIGN_IN = 9001
 
-    // In your onCreate or a setup method
-
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
+
+        //Email Password dan signIn lain
         auth = FirebaseAuth.getInstance()
+
+
         setContentView(binding.root)
 
 
@@ -41,6 +44,8 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
+
+
 
 
         enableEdgeToEdge()
@@ -107,7 +112,7 @@ class MainActivity : AppCompatActivity() {
                 if(user!=null)
                 {
                     if(user.isEmailVerified){
-                    startActivity(Intent(this,Home_Activity::class.java))
+                    startActivity(Intent(this, DaftarKontakActivity::class.java))
                     finish()}
                     else
                     {
@@ -128,7 +133,7 @@ class MainActivity : AppCompatActivity() {
     {
         if(auth.currentUser!=null)
         {
-            startActivity(Intent(this,Home_Activity::class.java))
+            startActivity(Intent(this, DaftarKontakActivity::class.java))
             finish()
         }
     }
@@ -141,7 +146,7 @@ class MainActivity : AppCompatActivity() {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithCredential:success")
                     val user = auth.currentUser
-                    startActivity(Intent(this,Home_Activity::class.java))
+                    startActivity(Intent(this, DaftarKontakActivity::class.java))
                     finish()
                     // Update UI
                 } else {
@@ -181,6 +186,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
 
 
 

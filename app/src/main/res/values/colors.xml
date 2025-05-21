@@ -1,5 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Primary pastel biru -->
+    <color name="colorPrimary">#AECBFA</color>
+    <color name="colorPrimaryVariant">#9BBDEB</color>
+    <!-- Ganti OnPrimary jadi hitam agar teks pada toolbar/btn terlihat -->
+    <color name="colorOnPrimary">#000000</color>
+
+    <!-- Secondary pastel pink -->
+    <color name="colorSecondary">#FFD1DC</color>
+    <color name="colorSecondaryVariant">#E6B3BA</color>
+    <color name="colorOnSecondary">#000000</color>
+
+    <!-- Background terang -->
+    <color name="colorBackground">#FAFAFA</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <!-- Teks utama gelap agar kontras baik di atas putih/abu sangat terang -->
+    <color name="colorOnBackground">#212121</color>
+    <color name="colorOnSurface">#212121</color>
 </resources>

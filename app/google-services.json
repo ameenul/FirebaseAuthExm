@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "1076323282066",
+    "firebase_url": "https://myauthapps-b8e67-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "myauthapps-b8e67",
     "storage_bucket": "myauthapps-b8e67.firebasestorage.app"
   },
@@ -12,7 +13,20 @@
           "package_name": "com.example.myapplication"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1076323282066-1etqn115s0m05et0lesav5vg86cdqmpm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.myapplication",
+            "certificate_hash": "fef51e98f1d89efd9844ccb90e6ba2d6165c799e"
+          }
+        },
+        {
+          "client_id": "1076323282066-u4s5nv8kk1d2307o4togggug5b9e5css.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBwcTjiQr_-CHh6fB5uhh3XrULEsjwYIc8"
@@ -20,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1076323282066-u4s5nv8kk1d2307o4togggug5b9e5css.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +50,12 @@
           "package_name": "com.example.myapplicationauth"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1076323282066-u4s5nv8kk1d2307o4togggug5b9e5css.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBwcTjiQr_-CHh6fB5uhh3XrULEsjwYIc8"
@@ -39,7 +63,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1076323282066-u4s5nv8kk1d2307o4togggug5b9e5css.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

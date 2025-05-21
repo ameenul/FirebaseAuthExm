@@ -53,6 +53,15 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.google.auth)
+    implementation(libs.google.googleid)
+
+
+
+
+    implementation(libs.firebase.storage.ktx)
+    implementation(libs.firebase.database.ktx)
+
+    implementation(libs.coil)
 
 
     testImplementation(libs.junit)
